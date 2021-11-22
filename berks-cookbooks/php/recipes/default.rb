@@ -1,10 +1,10 @@
 #
-# Author::  Joshua Timberman (<joshua@getchef.com>)
-# Author::  Seth Chisamore (<schisamo@getchef.com>)
-# Cookbook Name:: php
+# Author::  Joshua Timberman (<joshua@chef.io>)
+# Author::  Seth Chisamore (<schisamo@chef.io>)
+# Cookbook:: php
 # Recipe:: default
 #
-# Copyright 2009-2014, Chef Software, Inc.
+# Copyright:: 2009-2018, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@
 include_recipe "php::#{node['php']['install_method']}"
 
 # update the main channels
-php_pear_channel 'pear.php.net' do
-  action :update
-end
-
-php_pear_channel 'pecl.php.net' do
-  action :update
+node['php']['pear_channels'].each do |channel|
+  php_pear_channel channel do
+    binary node['php']['pear']
+    action :update
+    only_if { node['php']['pear_setup'] }
+  end
 end
 
 include_recipe 'php::ini'

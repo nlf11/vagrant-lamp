@@ -1,6 +1,6 @@
 Vagrant LAMP
 ============
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/r8/vagrant-lamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gitter](https://badges.gitter.im/r8/vagrant-lamp.svg)](https://gitter.im/r8/vagrant-lamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 My default LAMP development stack configuration for Vagrant.
 
@@ -37,6 +37,7 @@ Installed software:
 
 * Apache
 * MySQL
+* Redis
 * php
 * phpMyAdmin
 * Xdebug with Webgrind
@@ -54,10 +55,8 @@ Installed software:
     * [modman](https://github.com/colinmollenhour/modman)
     * [modgit](https://github.com/jreinke/modgit)
 * Node.js with following packages:
-    * [CoffeeScript](http://coffeescript.org)
     * [Grunt](http://gruntjs.com/)
     * [Bower](http://bower.io)
-    * [Yeoman](http://yeoman.io)
     * [LESS](http://lesscss.org)
     * [CSS Lint](http://csslint.net)
 
@@ -71,14 +70,14 @@ directory. The docroot of the new virtual host will be a directory within the
 `public/` folder matching the `host` you specified. Alternately you may specify
 a docroot explicitly by adding a `docroot` key in the json file.
 
-Default preconfigured host is `local.dev`.
+Default preconfigured host is `local.test`.
 
 ### Accessing your hosts via your local web browser
 
 In order to access vagrant hosts via your local browser you will need to edit your hosts file (`/private/etc/hosts` in Macs, `c:\Windows\System32\Drivers\etc\hosts` in Windows, `/etc/hosts` in Linux).
 All hosts should be mapped to `192.168.33.10`:
 
-    192.168.33.10 local.dev someyourotherhost.dev
+    192.168.33.10 local.test someyourotherhost.test
 
 ### MySQL
 
@@ -88,7 +87,7 @@ The guests local 3306 port is available on the host at port 33066. It is availab
 
 phpMyAdmin is available on every domain. For example:
 
-    http://local.dev/phpmyadmin
+    http://local.test/phpmyadmin
 
 ### XDebug and webgrind
 
@@ -100,11 +99,11 @@ integrated debugger like Eclipse PDT it will do this for you).
 XDebug is also configured to generate cachegrind profile output on demand by
 adding GET variable XDEBUG_PROFILE to your URL. For example:
 
-    http://local.dev/index.php?XDEBUG_PROFILE
+    http://local.test/index.php?XDEBUG_PROFILE
 
 Webgrind is available on each domain. For example:
 
-    http://local.dev/webgrind
+    http://local.test/webgrind
 
 It looks for cachegrind files in the `/tmp` directory, where xdebug leaves them.
 
@@ -124,7 +123,7 @@ happens to serve webgrind.
 
 All emails sent via local mail transport are intercepted by [MailHog](http://github.com/mailhog/MailHog). So normally no email would be delivered outside of the virtual machine. Instead you can check messages using web frontend for MailHog, which is running on port 8025 and also available on every domain:
 
-    http://local.dev:8025
+    http://local.test:8025
 
 ### Composer
 

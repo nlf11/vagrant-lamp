@@ -1,5 +1,4 @@
-# encoding: utf-8
-# Copyright:: Copyright (c) 2012, Chef Software, Inc.
+# Copyright:: 2012-2017, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +15,10 @@
 
 include_recipe 'postfix::_common'
 
+postmap_command = platform_family?('rhel') ? '/usr/sbin/postmap' : 'postmap'
+
 execute 'update-postfix-relay-restrictions' do
-  command "postmap #{node['postfix']['relay_restrictions_db']}"
+  command "#{postmap_command} #{node['postfix']['relay_restrictions_db']}"
   environment PATH: "#{ENV['PATH']}:/opt/omni/bin:/opt/omni/sbin" if platform_family?('omnios')
   action :nothing
 end
@@ -26,4 +27,3 @@ template node['postfix']['relay_restrictions_db'] do
   source 'relay_restrictions.erb'
   notifies :run, 'execute[update-postfix-relay-restrictions]'
 end
-

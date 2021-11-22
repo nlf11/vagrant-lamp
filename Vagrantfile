@@ -4,12 +4,9 @@
 Vagrant.require_version ">= 1.7.0"
 
 Vagrant.configure("2") do |config|
-  # All Vagrant configuration is done here. The most common configuration
-  # options are documented and commented below. For a complete reference,
-  # please see the online documentation at vagrantup.com.
-
-  # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "bento/ubuntu-14.04"
+  # Use Ubuntu 14.04 if we need PHP5
+  # config.vm.box = "bento/ubuntu-14.04"
+  config.vm.box = "bento/ubuntu-16.04"
 
   if Vagrant.has_plugin? 'vagrant-omnibus'
     # Set Chef version for Omnibus
@@ -37,7 +34,7 @@ Vagrant.configure("2") do |config|
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-  config.vm.network :private_network, ip: "192.168.33.10"
+  config.vm.network :private_network, ip: "192.168.33.100"
 
   # Set share folder permissions to 777 so that apache can write files
   config.vm.synced_folder ".", "/vagrant", mount_options: ['dmode=777','fmode=666']

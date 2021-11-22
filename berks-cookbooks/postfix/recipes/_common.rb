@@ -1,9 +1,8 @@
-# encoding: utf-8
 # Author:: Joshua Timberman(<joshua@chef.io>)
-# Cookbook Name:: common
+# Cookbook:: common
 # Recipe:: default
 #
-# Copyright 2009-2014, Chef Software, Inc.
+# Copyright:: 2009-2017, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +19,12 @@
 
 include_recipe 'postfix::_attributes'
 
-package 'postfix'
+package node['postfix']['packages']
 
 package 'procmail' if node['postfix']['use_procmail']
 
 case node['platform_family']
-when 'rhel', 'fedora'
+when 'rhel', 'fedora', 'amazon'
   service 'sendmail' do
     action :nothing
   end
@@ -57,7 +56,7 @@ when 'omnios'
   # we don't guard this because if the user creation was successful (or happened out of band), then this won't get executed when the action is :nothing.
   execute '/opt/omni/sbin/postfix set-permissions'
 
-  template manifest_path  do
+  template manifest_path do
     source 'manifest-postfix.xml.erb'
     owner 'root'
     group node['root_group']
@@ -68,7 +67,48 @@ when 'omnios'
   execute 'load postfix manifest' do
     action :nothing
     command "svccfg import #{manifest_path}"
-    notifies :restart, 'service[postfix]'
+    notifies :restart, 'service[postfix]' unless platform_family?('solaris2')
+  end
+when 'freebsd'
+  # Actions are based on docs provided by FreeBSD:
+  # https://www.freebsd.org/doc/handbook/mail-changingmta.html
+  service 'sendmail' do
+    action :nothing
+  end
+
+  template '/etc/mail/mailer.conf' do
+    source 'mailer.erb'
+    owner 'root'
+    group 0
+    notifies :restart, 'service[postfix]' unless platform_family?('solaris2')
+  end
+
+  execute 'switch_mailer_to_postfix' do
+    command [
+      'sysrc',
+      'sendmail_enable=NO',
+      'sendmail_submit_enable=NO',
+      'sendmail_outbound_enable=NO',
+      'sendmail_msp_queue_enable=NO',
+      'postfix_enable=YES',
+    ]
+    notifies :stop, 'service[sendmail]', :immediately
+    notifies :disable, 'service[sendmail]', :immediately
+    notifies :start, 'service[postfix]', :delayed
+    only_if "sysrc sendmail_enable sendmail_submit_enable sendmail_outbound_enable sendmail_msp_queue_enable | egrep -q '(YES|unknown variable)' || sysrc postfix_enable | egrep -q '(NO|unknown variable)'"
+  end
+
+  execute 'disable_periodic' do
+    # rubocop:disable Lint/ParenthesesAsGroupedExpression
+    environment ({ 'RC_CONFS' => '/etc/periodic.conf' })
+    command [
+      'sysrc',
+      'daily_clean_hoststat_enable=NO',
+      'daily_status_mail_rejects_enable=NO',
+      'daily_status_include_submit_mailq=NO',
+      'daily_submit_queuerun=NO',
+    ]
+    only_if "RC_CONFS=/etc/periodic.conf sysrc daily_clean_hoststat_enable daily_status_mail_rejects_enable daily_status_include_submit_mailq daily_submit_queuerun | egrep -q '(YES|unknown variable)'"
   end
 end
 
@@ -87,7 +127,7 @@ unless node['postfix']['sender_canonical_map_entries'].empty?
   end
 
   unless node['postfix']['main'].key?('sender_canonical_maps')
-    node.set['postfix']['main']['sender_canonical_maps'] = "hash:#{node['postfix']['conf_dir']}/sender_canonical"
+    node.normal['postfix']['main']['sender_canonical_maps'] = "hash:#{node['postfix']['conf_dir']}/sender_canonical"
   end
 end
 
@@ -100,13 +140,32 @@ unless node['postfix']['smtp_generic_map_entries'].empty?
   template "#{node['postfix']['conf_dir']}/smtp_generic" do
     owner 'root'
     group node['root_group']
-    mode  '0644'
+    mode '0644'
     notifies :run, 'execute[update-postfix-smtp_generic]'
     notifies :reload, 'service[postfix]'
   end
 
   unless node['postfix']['main'].key?('smtp_generic_maps')
-    node.set['postfix']['main']['smtp_generic_maps'] = "hash:#{node['postfix']['conf_dir']}/smtp_generic"
+    node.normal['postfix']['main']['smtp_generic_maps'] = "hash:#{node['postfix']['conf_dir']}/smtp_generic"
+  end
+end
+
+execute 'update-postfix-recipient_canonical' do
+  command "postmap #{node['postfix']['conf_dir']}/recipient_canonical"
+  action :nothing
+end
+
+unless node['postfix']['recipient_canonical_map_entries'].empty?
+  template "#{node['postfix']['conf_dir']}/recipient_canonical" do
+    owner 'root'
+    group node['root_group']
+    mode '0644'
+    notifies :run, 'execute[update-postfix-recipient_canonical]'
+    notifies :reload, 'service[postfix]'
+  end
+
+  unless node['postfix']['main'].key?('recipient_canonical_maps')
+    node.normal['postfix']['main']['recipient_canonical_maps'] = "hash:#{node['postfix']['conf_dir']}/recipient_canonical"
   end
 end
 
@@ -116,13 +175,18 @@ end
     owner 'root'
     group node['root_group']
     mode '0644'
-    notifies :restart, 'service[postfix]'
-    variables(settings: node['postfix'][cfg])
+    # restart service for solaris on chef-client has a bug
+    # unless condition can be removed after
+    # https://github.com/chef/chef/pull/6596 merge/release
+    notifies :restart, 'service[postfix]' unless platform_family?('solaris2')
+    variables(
+      lazy { { settings: node['postfix'][cfg] } }
+    )
     cookbook node['postfix']["#{cfg}_template_source"]
   end
 end
 
 service 'postfix' do
   supports status: true, restart: true, reload: true
-  action :enable
+  action [:enable, :start]
 end

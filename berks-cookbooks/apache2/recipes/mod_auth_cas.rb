@@ -1,8 +1,8 @@
 #
-# Cookbook Name:: apache2
+# Cookbook:: apache2
 # Recipe:: mod_auth_cas
 #
-# Copyright 2013, Chef Software, Inc.
+# Copyright:: 2013, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ if node['apache']['mod_auth_cas']['from_source']
     not_if "test -f #{node['apache']['libexec_dir']}/mod_auth_cas.so"
   end
 
-  template "#{node['apache']['dir']}/mods-available/auth_cas.load" do
+  template "#{apache_dir}/mods-available/auth_cas.load" do
     source 'mods/auth_cas.load.erb'
     owner 'root'
     group node['apache']['root_group']
@@ -45,14 +45,14 @@ else
   when 'debian'
     package 'libapache2-mod-auth-cas'
 
-  when 'rhel', 'fedora'
+  when 'rhel', 'fedora', 'amazon'
     yum_package 'mod_auth_cas' do
       notifies :run, 'execute[generate-module-list]', :immediately
     end
 
-    file "#{node['apache']['dir']}/conf.d/auth_cas.conf" do
-      action :delete
-      backup false
+    file "#{apache_dir}/conf.d/auth_cas.conf" do
+      content '# conf is under mods-available/auth_cas.conf - apache2 cookbook\n'
+      only_if { ::Dir.exist?("#{apache_dir}/conf.d") }
     end
   end
 end

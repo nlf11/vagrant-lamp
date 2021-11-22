@@ -1,8 +1,8 @@
 #
-# Cookbook Name:: apache2
+# Cookbook:: apache2
 # Attributes:: mod_pagespeed
 #
-# Copyright 2013, ZOZI
+# Copyright:: 2013, ZOZI
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #
 
 default['apache2']['mod_pagespeed']['package_link'] =
+  # NOTE: no precompiled packages for other architectures
   if node['kernel']['machine'] =~ /^i[36']86$/
     'https://dl-ssl.google.com/dl/linux/direct/mod-pagespeed-stable_current_i386.deb'
   else
